@@ -147,6 +147,7 @@
       });
 
       socket.on("gameOver", num => {
+        if (playerNumber != 1 && playerNumber != 2) return;
         status.style.marginTop = "200px";
         buttonStart.style.display = "initial";
         buttonStart.innerText = "Начать новую игру";
