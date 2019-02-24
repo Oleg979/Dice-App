@@ -32,6 +32,8 @@
           </div>
         </div>
         <div id="roll">Бросить кубик</div>
+        <div id="digit1"></div>
+        <div id="digit2"></div>
       </div>
     </div>
     <script>
@@ -43,6 +45,8 @@
       let buttonStart = $("#start");
       let buttonRoll = $("#roll");
       let game = $("#game");
+      let digit1 = $("#digit1");
+      let digit2 = $("#digit2");
       let playerNumber = 0;
 
       let yourOverallScore = 0;
@@ -115,6 +119,7 @@
       socket.on("turnFirstOver", currentScore => {
         if (playerNumber == 2) {
           enemyCurrentScore = currentScore;
+          digit2.innerText = enemyCurrentScore;
           enemyOverallScore += enemyCurrentScore;
           $("#player2 .overallScore").classList.add("increase");
           setTimeout(
@@ -132,6 +137,7 @@
       socket.on("turnSecondOver", currentScore => {
         if (playerNumber == 1) {
           enemyCurrentScore = currentScore;
+          digit2.innerText = enemyCurrentScore;
           enemyOverallScore += enemyCurrentScore;
           $("#player2 .overallScore").classList.add("increase");
           setTimeout(
@@ -171,6 +177,7 @@
       buttonRoll.onclick = e => {
         buttonRoll.style.display = "none";
         yourCurrentScore = rollDice();
+        digit1.innerText = yourCurrentScore;
         yourOverallScore += yourCurrentScore;
         $("#player1 .overallScore").classList.add("increase");
         setTimeout(

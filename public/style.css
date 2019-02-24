@@ -69,9 +69,17 @@ body {
   font-size: 3.5em;
 }
 .score {
-  color: red;
   font-size: 1.5em;
 }
+
+#player1 .score {
+  color: red;
+}
+
+#player2 .score {
+  color: darkslategrey;
+}
+
 .overallScore {
   font-size: 1.5em;
 }
@@ -91,4 +99,24 @@ body {
 .increase {
   animation-name: increaseScore;
   animation-duration: 0.3s;
+}
+
+#digit1 {
+  position: fixed;
+  font-size: 15em;
+  text-align: center;
+  color: red;
+  bottom: 5%;
+  left: 5%;
+  display: block;
+}
+
+#digit2 {
+  display: block;
+  position: fixed;
+  font-size: 15em;
+  text-align: center;
+  color: darkslategrey;
+  bottom: 5%;
+  right: 5%;
 }
