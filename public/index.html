@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dice game</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Oswald"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div id="main">
+        <div id="status"></div>
+        <div id="start">Начать игру</div>
+      </div>
+      <div id="game">
+        <div id="player1">
+          <div class="name">Вы</div>
+          <div class="overallScore">
+            Общий счёт: <span class="score">0</span>
+          </div>
+        </div>
+        <div id="player2">
+          <div class="name">Ваш противник</div>
+          <div class="overallScore">
+            Общий счёт: <span class="score">0</span>
+          </div>
+        </div>
+        <div id="roll">Бросить кубик</div>
+      </div>
+    </div>
+    <script>
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      //Data module
+
+      const $ = el => document.querySelector(el);
+      let status = $("#status");
+      let buttonStart = $("#start");
+      let buttonRoll = $("#roll");
+      let game = $("#game");
+      let playerNumber = 0;
+
+      let yourOverallScore = 0;
+      let enemyOverallScore = 0;
+
+      let yourCurrentScore = 0;
+      let enemyCurrentScore = 0;
+
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      // Socket module
+
+      let socket = io();
+
+      const addIdToDB = id => localStorage.setItem("id", id);
+
+      socket.on("firstCreated", time => {
+        addIdToDB(time);
+        playerNumber = 1;
+        status.innerText = "Ожидание второго игрока...";
+      });
+
+      socket.on("secondCreated", time => {
+        addIdToDB(time);
+        playerNumber = 2;
+        status.innerText = "Ожидание начала игры...";
+      });
+
+      socket.on("secondJoined", () => {
+        if (playerNumber == 1) {
+          status.innerText = "Вы можете начать игру";
+          buttonStart.style.display = "block";
+        }
+      });
+
+      socket.on("firstLeaved", () => {
+        if (playerNumber == 2) {
+          playerNumber = 1;
+          status.innerText = "Ожидание второго игрока...";
+          buttonStart.style.display = "none";
+        }
+      });
+
+      socket.on("secondLeaved", () => {
+        if (playerNumber == 1) {
+          status.innerText = "Ожидание второго игрока...";
+          buttonStart.style.display = "none";
+        }
+      });
+
+      socket.on("noPlaces", () => {
+        status.innerText = "Оба места уже заняты. Обновите страницу позже";
+      });
+
+      socket.on("startGame", () => {
+        game.style.display = "block";
+        buttonStart.style.display = "none";
+        status.innerText = `Игра началась. ${
+          playerNumber == 1 ? "Ваш ход!" : "Ход противника..."
+        }`;
+        playerNumber == 2 ? (buttonRoll.style.display = "none") : null;
+        status.style.marginTop = "20px";
+      });
+
+      socket.on("exitGame", () => {
+        if (playerNumber != 1 && playerNumber != 2) return;
+        alert("Ваш противник вышел. Игра окончена.");
+        location.reload();
+      });
+
+      socket.on("turnFirstOver", currentScore => {
+        if (playerNumber == 2) {
+          enemyCurrentScore = currentScore;
+          enemyOverallScore += enemyCurrentScore;
+          $("#player2 .overallScore").classList.add("increase");
+          setTimeout(
+            () => $("#player2 .overallScore").classList.remove("increase"),
+            310
+          );
+          setEnemyOverallScore(enemyOverallScore);
+          buttonRoll.style.display = "block";
+          status.innerText = "Ваш ход!";
+        } else if (playerNumber == 1) {
+          status.innerText = "Ход противника...";
+        }
+      });
+
+      socket.on("turnSecondOver", currentScore => {
+        if (playerNumber == 1) {
+          enemyCurrentScore = currentScore;
+          enemyOverallScore += enemyCurrentScore;
+          $("#player2 .overallScore").classList.add("increase");
+          setTimeout(
+            () => $("#player2 .overallScore").classList.remove("increase"),
+            310
+          );
+          setEnemyOverallScore(enemyOverallScore);
+          buttonRoll.style.display = "block";
+          status.innerText = "Ваш ход!";
+        } else if (playerNumber == 2) {
+          status.innerText = "Ход противника...";
+        }
+      });
+
+      socket.on("gameOver", num => {
+        status.style.marginTop = "200px";
+        buttonStart.style.display = "initial";
+        buttonStart.innerText = "Начать новую игру";
+        buttonStart.onclick = e => location.reload();
+        if (playerNumber == num) {
+          status.innerText = "Поздравляем! Вы победили";
+        } else {
+          status.innerText = "Игра окончена, Вы проиграли";
+        }
+        playerNumber = 0;
+        game.style.display = "none";
+      });
+
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      // Events module
+
+      buttonStart.onclick = e => {
+        socket.emit("gameStarted");
+      };
+
+      buttonRoll.onclick = e => {
+        buttonRoll.style.display = "none";
+        yourCurrentScore = rollDice();
+        yourOverallScore += yourCurrentScore;
+        $("#player1 .overallScore").classList.add("increase");
+        setTimeout(
+          () => $("#player1 .overallScore").classList.remove("increase"),
+          310
+        );
+        setYourOverallScore(yourOverallScore);
+        socket.emit("turnEnded", {
+          playerNumber,
+          currentScore: yourCurrentScore,
+          overallScore: yourOverallScore
+        });
+      };
+
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      // Utils module
+
+      const rollDice = () => Math.floor(Math.random() * (6 - 1 + 1)) + 1;
+
+      const setYourOverallScore = score =>
+        ($("#player1 .score").innerText = score);
+
+      const setEnemyOverallScore = score =>
+        ($("#player2 .score").innerText = score);
+
+      ///////////////////////////////////////////////////////////////////////////////////////////
+    </script>
+  </body>
+</html>
